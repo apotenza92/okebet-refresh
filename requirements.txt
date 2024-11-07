@@ -6,5 +6,3 @@ azure.identity
 pandas
 sshtunnel
 python-dotenv
-email.mime
-smtplib

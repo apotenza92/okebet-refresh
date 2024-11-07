@@ -8,6 +8,9 @@ import json
 import msal
 from sshtunnel import SSHTunnelForwarder
 from dotenv import load_dotenv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
@@ -87,6 +90,46 @@ def configure_logging():
     logging.info(f"-----------------------------------------")
 
 
+def send_status_email(status, duration=None, error=None):
+    # Get email settings from env
+    sender_email = os.getenv("SMTP_EMAIL")
+    sender_password = os.getenv("SMTP_PASSWORD")
+    recipient_emails = os.getenv("RECIPIENT_EMAILS").split(",")
+
+    # Create message
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"OkeBet PowerBI Refresh {status}"
+    msg["From"] = sender_email
+    msg["To"] = ", ".join(recipient_emails)
+
+    # Create HTML content
+    powerbi_url = "https://app.powerbi.com/groups/me/apps/69ae4888-532a-4c15-81a7-e883d8029a78/reports/47231bd7-f1fd-423e-adc9-c6c163cbc6c5/ReportSection"
+
+    html = f"""
+    <html>
+        <body>
+            <h2>PowerBI Refresh Status: {status}</h2>
+            <p>The refresh completed at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            {"<p>Duration: " + str(duration) + "</p>" if duration else ""}
+            {"<p style='color:red'>Error: " + str(error) + "</p>" if error else ""}
+            <p><a href="{powerbi_url}">View PowerBI Dashboard</a></p>
+        </body>
+    </html>
+    """
+
+    msg.attach(MIMEText(html, "html"))
+
+    # Send email
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+            logging.info(f"Status email sent to {recipient_emails}")
+    except Exception as e:
+        logging.error(f"Failed to send email: {str(e)}")
+
+
 def start_ssh_tunnel():
     try:
         ssh_tunnel.start()
@@ -151,8 +194,10 @@ max_time = start_time + datetime.timedelta(hours=1)
 while True:
     current_status = get_current_status()
     if current_status == "Completed":
+        duration = datetime.datetime.now() - start_time
         logging.info(f"Refresh completed. Status: {current_status}")
-        logging.info(f"Time to refresh: {datetime.datetime.now() - start_time}")
+        logging.info(f"Time to refresh: {duration}")
+        send_status_email("Completed", duration=duration)
         break
     elif current_status == "Unknown":
         logging.info(
@@ -160,6 +205,7 @@ while True:
         )
     elif current_status == "Failed":
         logging.error(f"Refresh failed. Status: {current_status}")
+        send_status_email("Failed", error="Refresh failed")
         break
     elif current_status == "Disabled":
         logging.error(f"Refresh disabled. Status: {current_status}")
