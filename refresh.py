@@ -29,12 +29,11 @@ url = (
     + dataset_id
     + "/refreshes"
 )
-private_key_path = os.getenv("PRIVATE_KEY_PATH")
 
 ssh_tunnel = SSHTunnelForwarder(
     "54.79.64.88",
     ssh_username="bm",
-    ssh_pkey=private_key_path,
+    ssh_pkey=os.getenv("PRIVATE_KEY_PATH"),
     remote_bind_address=("replicated-db-api.okebet.com.au", 3306),
     local_bind_address=("localhost", 3309),
 )

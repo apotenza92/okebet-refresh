@@ -1,12 +1,13 @@
-# Change directory to the location of your scripts
-$scriptPath = $PSScriptRoot
+# Navigate to script directory and set location
+Set-Location $PSScriptRoot
 
-# Execute the Python script using the virtual environment
-$pythonPath = Join-Path $scriptPath ".venv\Scripts\python.exe"
-$refreshScriptPath = Join-Path $scriptPath "refresh.py"
-
-# Run the script
-& "$pythonPath" "$refreshScriptPath"
-
-# Prevent the PowerShell window from closing immediately
-Read-Host -Prompt "Press Enter to exit"
+# Execute Python script from virtual environment
+try {
+    .\.venv\Scripts\python.exe refresh.py
+}
+catch {
+    Write-Error $_.Exception.Message
+}
+finally {
+    Read-Host -Prompt "Press Enter to exit"
+}
