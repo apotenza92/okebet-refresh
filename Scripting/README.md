@@ -1,0 +1,1 @@
+Use https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Overview/appId/4ecdf3e4-2fd6-43e7-988b-9068c584c13f/isMSAApp~/false

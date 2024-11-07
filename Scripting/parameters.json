@@ -1,0 +1,7 @@
+{
+  "authority": "https://login.microsoftonline.com/31c159be-8f05-4809-abc1-7ab3f75a37ee",
+  "client_id": "4ecdf3e4-2fd6-43e7-988b-9068c584c13f",
+  "scope": [ "https://analysis.windows.net/powerbi/api/.default" ],
+  "secret": "mCF8Q~-O5rTXFWQrTV-uWaz4CqMvIwJQ_SeYea.d",
+  "endpoint": "https://graph.microsoft.com/v1.0/users"
+}
