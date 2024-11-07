@@ -1,5 +1,5 @@
 # Change directory to the location of your scripts
-$scriptPath = "C:\Users\apote\OneDrive\ABNBusiness\Okebet\PowerBI\Scripting"
+$scriptPath = $PSScriptRoot
 
 # Execute the Python script using the virtual environment
 $pythonPath = Join-Path $scriptPath ".venv\Scripts\python.exe"

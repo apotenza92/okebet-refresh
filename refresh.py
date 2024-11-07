@@ -46,6 +46,12 @@ def configure_logging():
     if not os.path.exists("logs"):
         os.makedirs("logs")
 
+    logs = os.listdir("logs")
+    if len(logs) > 10:
+        logs.sort()
+        for log in logs[:-10]:
+            os.remove(f"logs/{log}")
+
     # Configure logging
     logging.basicConfig(
         filename=f"logs/refresh_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log",
@@ -111,16 +117,6 @@ def get_token_for_client(scope):
         )
 
 
-# keep the most recent 10 logs
-def clear_logs():
-    logs = os.listdir("logs")
-    if len(logs) > 10:
-        logs.sort()
-        for log in logs[:-10]:
-            os.remove(f"logs/{log}")
-
-
-clear_logs()
 configure_logging()
 start_ssh_tunnel()
 access_token = get_token_for_client(scope)
