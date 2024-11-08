@@ -130,17 +130,43 @@ def send_status_email(status, duration=None, error=None):
         logging.error(f"Failed to send email: {str(e)}")
 
 
-def start_ssh_tunnel():
+def start_ssh_tunnel(max_retries=3, retry_delay=10):
+    for attempt in range(max_retries):
+        try:
+            if ssh_tunnel.is_active:
+                ssh_tunnel.stop()
+
+            ssh_tunnel.start()
+            if ssh_tunnel.is_active:
+                logging.info(
+                    f"SSH tunnel successfully started on attempt {attempt + 1}"
+                )
+                return True
+            else:
+                logging.warning(f"SSH tunnel failed to start on attempt {attempt + 1}")
+        except Exception as e:
+            logging.error(f"Failed to start SSH tunnel on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                logging.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            continue
+
+    logging.error("All SSH tunnel connection attempts failed")
+    return False
+
+
+def check_ssh_connection():
     try:
-        ssh_tunnel.start()
-        if ssh_tunnel.is_active:
-            logging.info("SSH tunnel successfully started.")
-        else:
-            logging.info("SSH tunnel failed to start.")
+        if not ssh_tunnel.is_active:
+            logging.warning("SSH tunnel became inactive, attempting to reconnect...")
+            if start_ssh_tunnel():
+                time.sleep(5)  # Give connection time to stabilize
+                return True
+            return False
+        return True
     except Exception as e:
-        logging.info("Failed to start SSH tunnel.")
-        logging.info(e)
-    time.sleep(10)
+        logging.error(f"SSH connection check failed: {e}")
+        return False
 
 
 def get_token_for_client(scope):
@@ -189,9 +215,16 @@ def get_current_status():
 # while the df.status[0] returns anything other than Completed, log the current status to the log file with current time. Do it for a maximum of 1 hour.
 
 start_time = datetime.datetime.now()
-max_time = start_time + datetime.timedelta(hours=1)
+timeout = 15
+max_time = start_time + datetime.timedelta(minutes=timeout)
 
-while True:
+while datetime.datetime.now() <= max_time:
+
+    if not check_ssh_connection():
+        logging.error("Cannot maintain SSH connection")
+        send_status_email("Failed", error="SSH connection lost and reconnection failed")
+        break
+
     current_status = get_current_status()
     if current_status == "Completed":
         duration = datetime.datetime.now() - start_time
@@ -209,18 +242,20 @@ while True:
         break
     elif current_status == "Disabled":
         logging.error(f"Refresh disabled. Status: {current_status}")
+        send_status_email("Failed", error="Refresh disabled")
         break
     else:
         logging.error(f"Unknown status. Status: {current_status}")
+        send_status_email("Failed", error=f"Unknown status: {current_status}")
         break
 
     # Sleep before checking the status again
     time.sleep(30)
 
-    # If 1 hour has passed, stop checking the status
-    if start_time >= max_time:
-        logging.info("1 hour has passed. Stopping status checks.")
-        break
+# Handle timeout case
+if datetime.datetime.now() > max_time:
+    logging.error(f"Refresh timed out after {timeout} minutes.")
+    send_status_email("Failed", error=f"Refresh timed out after {timeout} minutes.")
 
-
+# Always stop SSH tunnel
 ssh_tunnel.stop()

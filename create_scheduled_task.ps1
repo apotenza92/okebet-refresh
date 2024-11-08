@@ -22,7 +22,8 @@ try {
         Unregister-ScheduledTask -TaskName "OkeBet Refresh" -Confirm:$false
         Write-Host "Existing task removed." -ForegroundColor Green
     }
-} catch {
+}
+catch {
     Write-Host "Error removing existing task: $_" -ForegroundColor Red
 }
 
@@ -40,7 +41,10 @@ $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
     -StartWhenAvailable `
-    -WakeToRun
+    -WakeToRun `
+    -ExecutionTimeLimit (New-TimeSpan -Minutes 30) `
+    -RestartCount 3 `
+    -RestartInterval (New-TimeSpan -Minutes 1)
 
 # Create principal (run as current user)
 $principal = New-ScheduledTaskPrincipal `
@@ -64,7 +68,8 @@ try {
     Write-Host "Testing task..." -ForegroundColor Yellow
     Start-ScheduledTask -TaskName "OkeBet Refresh"
     Write-Host "Task started. Check for a new PowerShell window." -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "Error creating/starting task: $_" -ForegroundColor Red
 }
 
