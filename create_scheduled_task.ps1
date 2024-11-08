@@ -51,8 +51,11 @@ $settings = New-ScheduledTaskSettingsSet `
 
 $principal = New-ScheduledTaskPrincipal `
     -UserId $currentUser `
-    -LogonType Interactive `
+    -LogonType S4U `
     -RunLevel Highest
+
+# Get credentials for non-interactive login
+$password = Read-Host -AsSecureString -Prompt "Enter password for $currentUser"
 
 try {
     # Register the scheduled task
@@ -62,6 +65,8 @@ try {
         -Trigger $trigger `
         -Settings $settings `
         -Principal $principal `
+        -User $currentUser `
+        -Password $password `
         -Force
 
     Write-Host "Task created successfully!" -ForegroundColor Green
