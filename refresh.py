@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import signal
+import atexit
 
 load_dotenv()
 
@@ -40,6 +42,23 @@ ssh_tunnel = SSHTunnelForwarder(
     remote_bind_address=("replicated-db-api.okebet.com.au", 3306),
     local_bind_address=("localhost", 3309),
 )
+
+
+def cleanup_tunnel():
+    """Ensure proper tunnel cleanup on exit"""
+    if ssh_tunnel and ssh_tunnel.is_active:
+        logging.info("Cleaning up SSH tunnel...")
+        try:
+            ssh_tunnel.stop()
+            logging.info("SSH tunnel cleaned up successfully")
+        except Exception as e:
+            logging.error(f"Error cleaning up SSH tunnel: {e}")
+
+
+# Register cleanup handlers
+atexit.register(cleanup_tunnel)
+signal.signal(signal.SIGTERM, lambda s, f: cleanup_tunnel())
+signal.signal(signal.SIGINT, lambda s, f: cleanup_tunnel())
 
 
 def configure_logging():
@@ -133,8 +152,11 @@ def send_status_email(status, duration=None, error=None):
 def start_ssh_tunnel(max_retries=3, retry_delay=10):
     for attempt in range(max_retries):
         try:
+            # Clean up any existing tunnel first
             if ssh_tunnel.is_active:
+                logging.info("Stopping existing SSH tunnel...")
                 ssh_tunnel.stop()
+                time.sleep(2)  # Wait for cleanup
 
             ssh_tunnel.start()
             if ssh_tunnel.is_active:
@@ -146,6 +168,10 @@ def start_ssh_tunnel(max_retries=3, retry_delay=10):
                 logging.warning(f"SSH tunnel failed to start on attempt {attempt + 1}")
         except Exception as e:
             logging.error(f"Failed to start SSH tunnel on attempt {attempt + 1}: {e}")
+            try:
+                ssh_tunnel.stop()  # Ensure cleanup on error
+            except:
+                pass
             if attempt < max_retries - 1:
                 logging.info(f"Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
@@ -215,7 +241,7 @@ def get_current_status():
 # while the df.status[0] returns anything other than Completed, log the current status to the log file with current time. Do it for a maximum of 1 hour.
 
 start_time = datetime.datetime.now()
-timeout = 15
+timeout = 60
 max_time = start_time + datetime.timedelta(minutes=timeout)
 
 while datetime.datetime.now() <= max_time:

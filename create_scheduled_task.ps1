@@ -1,3 +1,8 @@
+# create_scheduled_task.ps1
+param(
+    [switch]$Test = $false
+)
+
 # Self-elevate the script if required
 if (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
     $commandLine = "-NoExit -File `"$($MyInvocation.MyCommand.Path)`""
@@ -27,16 +32,14 @@ catch {
     Write-Host "Error removing existing task: $_" -ForegroundColor Red
 }
 
-# Create scheduled task action
+# Create task configuration
 $action = New-ScheduledTaskAction `
     -Execute "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" `
     -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Normal -Command `"Set-Location '$scriptPath'; & '$pythonExe' '$refreshPy'`"" `
     -WorkingDirectory $scriptPath
 
-# Create daily trigger at 6 AM
 $trigger = New-ScheduledTaskTrigger -Daily -At 6AM
 
-# Set task settings
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
@@ -46,7 +49,6 @@ $settings = New-ScheduledTaskSettingsSet `
     -RestartCount 3 `
     -RestartInterval (New-TimeSpan -Minutes 1)
 
-# Create principal (run as current user)
 $principal = New-ScheduledTaskPrincipal `
     -UserId $currentUser `
     -LogonType Interactive `
@@ -63,14 +65,14 @@ try {
         -Force
 
     Write-Host "Task created successfully!" -ForegroundColor Green
-    
-    # Test run the task
-    Write-Host "Testing task..." -ForegroundColor Yellow
-    Start-ScheduledTask -TaskName "OkeBet Refresh"
-    Write-Host "Task started. Check for a new PowerShell window." -ForegroundColor Green
+
+    if ($Test) {
+        Write-Host "Testing task..." -ForegroundColor Yellow
+        & "$PSScriptRoot\test_scheduled_task.ps1"
+    }
 }
 catch {
-    Write-Host "Error creating/starting task: $_" -ForegroundColor Red
+    Write-Host "Error creating task: $_" -ForegroundColor Red
 }
 
 Read-Host -Prompt "Press Enter to exit"
