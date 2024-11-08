@@ -115,6 +115,17 @@ def send_status_email(status, duration=None, error=None):
     sender_password = os.getenv("SMTP_PASSWORD")
     recipient_emails = os.getenv("RECIPIENT_EMAILS").split(",")
 
+    # Get latest log file content
+    logs = os.listdir("logs")
+    if logs:
+        latest_log = max(
+            [f for f in logs], key=lambda x: os.path.getctime(os.path.join("logs", x))
+        )
+        with open(os.path.join("logs", latest_log), "r") as f:
+            log_content = f.read()
+    else:
+        log_content = "No log file found"
+
     # Create message
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"OkeBet PowerBI Refresh {status}"
@@ -122,7 +133,7 @@ def send_status_email(status, duration=None, error=None):
     msg["To"] = ", ".join(recipient_emails)
 
     # Create HTML content
-    powerbi_url = "https://app.powerbi.com/groups/me/apps/69ae4888-532a-4c15-81a7-e883d8029a78/reports/47231bd7-f1fd-423e-adc9-c6c163cbc6c5/ReportSection"
+    powerbi_url = "https://app.powerbi.com/Redirect?action=OpenApp&appId=69ae4888-532a-4c15-81a7-e883d8029a78&ctid=31c159be-8f05-4809-abc1-7ab3f75a37ee"
 
     html = f"""
     <html>
@@ -132,6 +143,11 @@ def send_status_email(status, duration=None, error=None):
             {"<p>Duration: " + str(duration) + "</p>" if duration else ""}
             {"<p style='color:red'>Error: " + str(error) + "</p>" if error else ""}
             <p><a href="{powerbi_url}">View PowerBI Dashboard</a></p>
+            <hr>
+            <h3>Log Output:</h3>
+            <pre style="background-color: #f5f5f5; padding: 10px; font-family: monospace; white-space: pre-wrap;">
+{log_content}
+            </pre>
         </body>
     </html>
     """

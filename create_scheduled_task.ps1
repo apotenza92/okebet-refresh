@@ -1,80 +1,52 @@
-# create_scheduled_task.ps1
-param(
-    [switch]$Test = $false
-)
-
-# Self-elevate the script if required
+# Check if running as admin and self-elevate if needed
 if (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
-    $commandLine = "-NoExit -File `"$($MyInvocation.MyCommand.Path)`""
-    Start-Process -FilePath PowerShell.exe -Verb RunAs -ArgumentList $commandLine -Wait
+    Write-Host "Requesting administrative privileges..." -ForegroundColor Yellow
+    $arguments = "-File `"$($MyInvocation.MyCommand.Path)`""
+    Start-Process powershell -Verb RunAs -ArgumentList $arguments
     exit
 }
 
-# Get the current script's directory
+# Get absolute paths
 $scriptPath = $PSScriptRoot
-$refreshScript = Join-Path $scriptPath "refresh_okebet.ps1"
 $pythonExe = Join-Path $scriptPath ".venv\Scripts\python.exe"
 $refreshPy = Join-Path $scriptPath "refresh.py"
 
-# Get current user for task
-$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-
-# Remove existing task if it exists
 try {
-    $existingTask = Get-ScheduledTask -TaskName "OkeBet Refresh" -ErrorAction SilentlyContinue
-    if ($existingTask) {
-        Write-Host "Removing existing task..." -ForegroundColor Yellow
-        Unregister-ScheduledTask -TaskName "OkeBet Refresh" -Confirm:$false
-        Write-Host "Existing task removed." -ForegroundColor Green
-    }
-}
-catch {
-    Write-Host "Error removing existing task: $_" -ForegroundColor Red
-}
+    # Remove existing task if it exists
+    Get-ScheduledTask -TaskName "OkeBet Refresh" -ErrorAction SilentlyContinue | 
+    Unregister-ScheduledTask -Confirm:$false
 
-# Create task configuration
-$action = New-ScheduledTaskAction `
-    -Execute "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Normal -Command `"Set-Location '$scriptPath'; & '$pythonExe' '$refreshPy'`"" `
-    -WorkingDirectory $scriptPath
+    # Create task configuration
+    $action = New-ScheduledTaskAction `
+        -Execute $pythonExe `
+        -Argument "`"$refreshPy`"" `
+        -WorkingDirectory $scriptPath
 
-$trigger = New-ScheduledTaskTrigger -Daily -At 6AM
+    $trigger = New-ScheduledTaskTrigger -Daily -At 6AM
+    
+    $settings = New-ScheduledTaskSettingsSet `
+        -AllowStartIfOnBatteries `
+        -DontStopIfGoingOnBatteries `
+        -StartWhenAvailable `
+        -WakeToRun `
+        -ExecutionTimeLimit (New-TimeSpan -Minutes 30) `
+        -RestartCount 3 `
+        -RestartInterval (New-TimeSpan -Minutes 1)
 
-$settings = New-ScheduledTaskSettingsSet `
-    -AllowStartIfOnBatteries `
-    -DontStopIfGoingOnBatteries `
-    -StartWhenAvailable `
-    -WakeToRun `
-    -ExecutionTimeLimit (New-TimeSpan -Minutes 30) `
-    -RestartCount 3 `
-    -RestartInterval (New-TimeSpan -Minutes 1)
+    $principal = New-ScheduledTaskPrincipal `
+        -UserId "SYSTEM" `
+        -LogonType ServiceAccount `
+        -RunLevel Highest
 
-$principal = New-ScheduledTaskPrincipal `
-    -UserId $currentUser `
-    -LogonType S4U `
-    -RunLevel Highest
-
-# Get credentials for non-interactive login
-$password = Read-Host -AsSecureString -Prompt "Enter password for $currentUser"
-
-try {
-    # Register the scheduled task
     Register-ScheduledTask `
         -TaskName "OkeBet Refresh" `
         -Action $action `
         -Trigger $trigger `
         -Settings $settings `
         -Principal $principal `
-        -User $currentUser `
-        -Password $password `
         -Force
 
     Write-Host "Task created successfully!" -ForegroundColor Green
-
-    if ($Test) {
-        Write-Host "Testing task..." -ForegroundColor Yellow
-        & "$PSScriptRoot\test_scheduled_task.ps1"
-    }
 }
 catch {
     Write-Host "Error creating task: $_" -ForegroundColor Red
