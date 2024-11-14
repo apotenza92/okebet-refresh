@@ -1,8 +1,15 @@
+## Table of Contents
+1. [Description](#1-description)
+2. [Requirements](#2-requirements)
+3. [Setup](#3-setup)
+4. [Manual Refresh Instructions](#4-manual-refresh-instructions)
+5. [Automatic Script Refresh Instructions](#5-automatic-script-refresh-instructions)
+
 ## 1 Description
 
 Guide for Okebet to refresh PowerBI data. Includes:  
-- Initial setup instructions.  
-- Manual refresh instructions.  
+- [Initial setup instructions](#3-setup).  
+- [Manual refresh instructions](#4-manual-refresh-instructions).  
 - Automatic Python script instructions (TBC).
 
 ## 2 Requirements
