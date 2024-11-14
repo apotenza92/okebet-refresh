@@ -15,8 +15,12 @@ Guide for Okebet to refresh PowerBI data. Includes:
 ## 2 Requirements
 
 - Windows OS to install the PowerBI on-premises data gateway
-- Python (if using automatic script method)
+- `okebet-replication.pem` ssh key
+
+### 2.1 Automatic Script Requirements (TBC)
+- Python
 	- For Windows, you can install Python from [Python Releases for Windows](https://www.python.org/downloads/windows/)
+- completed.env file
 
 ## 3 Setup
 
