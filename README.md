@@ -1,4 +1,5 @@
 ## Table of Contents
+
 1. [Description](#1-description)
 2. [Requirements](#2-requirements)
 3. [Setup](#3-setup)
@@ -15,8 +16,9 @@ Guide for Okebet to refresh PowerBI data.
 - `okebet-replication.pem` ssh key (stored in Okebet [PowerBI Refresh Data folder](https://drive.google.com/drive/folders/1WCRVblPKGi_H_PTJD0_43SqDryxbORPT?usp=sharing))
 
 ### 2.1 Automatic Script Requirements (TBC)
+
 - Python
-	- For Windows, you can install Python from [Python Releases for Windows](https://www.python.org/downloads/windows/)
+  - For Windows, you can install Python from [Python Releases for Windows](https://www.python.org/downloads/windows/)
 - .env file (stored in Okebet [PowerBI Refresh Data folder](https://drive.google.com/drive/folders/1WCRVblPKGi_H_PTJD0_43SqDryxbORPT?usp=sharing))
 
 ## 3 Setup
@@ -60,7 +62,7 @@ Name the connection and set the Connection type to MySQL.
 
 Now fill out the following information in the remaining fields
 
-```
+```info
 Server: localhost:3309  
 Database: bi
 
